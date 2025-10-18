@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Crypto Trading Bot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(214.3 31.8% 91.4%)",
+                        input: "hsl(214.3 31.8% 91.4%)",
+                        ring: "hsl(222.2 84% 4.9%)",
+                        background: "hsl(0 0% 100%)",
+                        foreground: "hsl(222.2 84% 4.9%)",
+                        primary: {
+                            DEFAULT: "hsl(222.2 47.4% 11.2%)",
+                            foreground: "hsl(210 40% 98%)",
+                        },
+                        secondary: {
+                            DEFAULT: "hsl(210 40% 96.1%)",
+                            foreground: "hsl(222.2 47.4% 11.2%)",
+                        },
+                        muted: {
+                            DEFAULT: "hsl(210 40% 96.1%)",
+                            foreground: "hsl(215.4 16.3% 46.9%)",
+                        },
+                        accent: {
+                            DEFAULT: "hsl(210 40% 96.1%)",
+                            foreground: "hsl(222.2 47.4% 11.2%)",
+                        },
+                        success: "hsl(142.1 76.2% 36.3%)",
+                        destructive: "hsl(0 84.2% 60.2%)",
+                    },
+                    borderRadius: {
+                        lg: "0.5rem",
+                        md: "calc(0.5rem - 2px)",
+                        sm: "calc(0.5rem - 4px)",
+                    },
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body class="bg-background text-foreground antialiased">
+    <div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <!-- Header -->
+        <header class="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+            <div class="container mx-auto px-4 py-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight text-primary">AI Crypto Trading Bot</h1>
+                        <p class="text-sm text-muted-foreground mt-0.5">Powered by xAI Grok</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-muted-foreground">Status:</span>
+                        <span id="botStatus"
+                            class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-destructive/10 text-destructive">Stopped</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <!-- Controls -->
+            <div class="mb-6 rounded-lg border bg-white p-4 shadow-sm">
+                <div class="flex flex-wrap items-center gap-3">
+                    <button id="startBtn"
+                        class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-success text-white hover:bg-success/90 h-10 px-4 py-2">
+                        Start Bot
+                    </button>
+                    <button id="stopBtn"
+                        class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-destructive text-white hover:bg-destructive/90 h-10 px-4 py-2"
+                        disabled>
+                        Stop Bot
+                    </button>
+                    <button id="runCycleBtn"
+                        class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+                        Run Single Cycle
+                    </button>
+                </div>
+            </div>
+
+            <!-- Market Data & Portfolio Grid -->
+            <div class="grid gap-6 md:grid-cols-2 mb-6">
+                <!-- Market Data Card -->
+                <div class="rounded-lg border bg-white shadow-sm">
+                    <div class="p-6">
+                        <h2 class="text-lg font-semibold tracking-tight mb-4">Market Data</h2>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-sm font-medium text-muted-foreground">Pair</p>
+                                    <p id="pair" class="text-2xl font-bold mt-1">-</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-muted-foreground">Price</p>
+                                    <p id="price" class="text-2xl font-bold text-success mt-1">$-</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4 pt-4 border-t">
+                                <div>
+                                    <p class="text-xs font-medium text-muted-foreground">24h Change</p>
+                                    <p id="change24h" class="text-sm font-semibold mt-1">-</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-muted-foreground">24h High</p>
+                                    <p id="high24h" class="text-sm font-semibold mt-1">$-</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-muted-foreground">24h Low</p>
+                                    <p id="low24h" class="text-sm font-semibold mt-1">$-</p>
+                                </div>
+                            </div>
+                            <div class="pt-4 border-t">
+                                <p class="text-xs font-medium text-muted-foreground">Volume</p>
+                                <p id="volume" class="text-sm font-semibold mt-1">-</p>
+                            </div>
+                        </div>
+                        <div class="mt-6 pt-6 border-t">
+                            <h3 class="text-sm font-semibold mb-3">Technical Indicators</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="rounded-md bg-secondary p-3">
+                                    <p class="text-xs font-medium text-muted-foreground">RSI</p>
+                                    <p id="rsi" class="text-lg font-bold mt-1">-</p>
+                                </div>
+                                <div class="rounded-md bg-secondary p-3">
+                                    <p class="text-xs font-medium text-muted-foreground">MACD</p>
+                                    <p id="macd" class="text-lg font-bold mt-1">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Portfolio Card -->
+                <div class="rounded-lg border bg-white shadow-sm">
+                    <div class="p-6">
+                        <h2 class="text-lg font-semibold tracking-tight mb-4">Portfolio</h2>
+                        <div class="space-y-4">
+                            <div
+                                class="rounded-lg bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground">
+                                <p class="text-sm font-medium opacity-90">Total Value</p>
+                                <p id="totalValue" class="text-3xl font-bold mt-2">$-</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="rounded-md border p-4">
+                                    <p class="text-xs font-medium text-muted-foreground">USD Balance</p>
+                                    <p id="usdBalance" class="text-lg font-bold mt-1">$-</p>
+                                </div>
+                                <div class="rounded-md border p-4">
+                                    <p class="text-xs font-medium text-muted-foreground">Crypto Balance</p>
+                                    <p id="cryptoBalance" class="text-lg font-bold mt-1">-</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-6 pt-6 border-t">
+                            <h3 class="text-sm font-semibold mb-3">Statistics</h3>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="text-center rounded-md bg-secondary p-3">
+                                    <p class="text-xs font-medium text-muted-foreground">Total</p>
+                                    <p id="totalTrades" class="text-xl font-bold mt-1">-</p>
+                                </div>
+                                <div class="text-center rounded-md bg-success/10 p-3">
+                                    <p class="text-xs font-medium text-success">Buys</p>
+                                    <p id="buyTrades" class="text-xl font-bold text-success mt-1">-</p>
+                                </div>
+                                <div class="text-center rounded-md bg-destructive/10 p-3">
+                                    <p class="text-xs font-medium text-destructive">Sells</p>
+                                    <p id="sellTrades" class="text-xl font-bold text-destructive mt-1">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Decision -->
+            <div class="mb-6 rounded-lg border bg-white shadow-sm">
+                <div class="p-6">
+                    <h2 class="text-lg font-semibold tracking-tight mb-4">Latest AI Decision</h2>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm font-medium text-muted-foreground">Decision:</span>
+                            <span id="decision"
+                                class="inline-flex items-center rounded-md px-3 py-1 text-sm font-semibold">-</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-muted-foreground mb-2">Reasoning:</p>
+                            <div class="rounded-md bg-muted p-4 border-l-4 border-primary">
+                                <p id="reasoning" class="text-sm leading-relaxed">No decision yet. Start the bot or run
+                                    a single cycle.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trade History -->
+            <div class="mb-6 rounded-lg border bg-white shadow-sm">
+                <div class="p-6">
+                    <h2 class="text-lg font-semibold tracking-tight mb-4">Trade History</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b bg-muted/50">
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                        Time</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                        Type</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                        Price</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                        Amount</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                        USD Value</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                        Reasoning</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tradeTableBody" class="divide-y">
+                                <tr>
+                                    <td colspan="6" class="px-4 py-8 text-center text-sm text-muted-foreground">No
+                                        trades yet</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="rounded-lg border bg-white shadow-sm">
+                <div class="p-6">
+                    <h2 class="text-lg font-semibold tracking-tight mb-4">Activity Log</h2>
+                    <div id="activityLog"
+                        class="h-96 overflow-y-auto rounded-md bg-slate-50 p-4 space-y-2 font-mono text-xs">
+                        <div class="text-muted-foreground">
+                            <span class="font-semibold">--:--:--</span>
+                            <span class="ml-2">Waiting for activity...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>

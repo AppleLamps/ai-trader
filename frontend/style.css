@@ -1,0 +1,50 @@
+/* AI Crypto Trading Bot - Custom Styles */
+
+/* Smooth scrolling for activity log */
+#activityLog {
+    scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for activity log */
+#activityLog::-webkit-scrollbar {
+    width: 8px;
+}
+
+#activityLog::-webkit-scrollbar-track {
+    background: hsl(210 40% 96.1%);
+    border-radius: 4px;
+}
+
+#activityLog::-webkit-scrollbar-thumb {
+    background: hsl(215.4 16.3% 46.9%);
+    border-radius: 4px;
+}
+
+#activityLog::-webkit-scrollbar-thumb:hover {
+    background: hsl(215.4 16.3% 36.9%);
+}
+
+/* Smooth transitions */
+button {
+    transition: all 0.2s ease-in-out;
+}
+
+button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+/* Additional utility styles */
+.text-success {
+    color: hsl(142.1 76.2% 36.3%);
+}
+
+.text-destructive {
+    color: hsl(0 84.2% 60.2%);
+}
+
+.text-muted-foreground {
+    color: hsl(215.4 16.3% 46.9%);
+}
+
+/* End of custom styles */
