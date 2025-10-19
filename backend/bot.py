@@ -22,10 +22,10 @@ class TradingBot:
         self.ai_agent = GrokTradingAgent()
         self.risk_manager = RiskManager(
             max_position_size=settings.trade_percentage,
-            stop_loss_percentage=0.05,  # 5% stop loss
-            take_profit_percentage=0.10,  # 10% take profit
-            max_daily_trades=20,
-            cooldown_minutes=5
+            stop_loss_percentage=0.30,  # 30% catastrophic stop loss
+            take_profit_percentage=10.0,  # 1000% take profit (effectively disabled)
+            max_daily_trades=500,
+            cooldown_minutes=0  # No cooldown - AI decides when to trade
         )
 
         # Get list of trading pairs and extract crypto symbols
@@ -137,36 +137,6 @@ class TradingBot:
             # Check risk management rules
             can_trade, trade_reason = self.risk_manager.can_trade()
 
-            # Check for stop loss or take profit triggers
-            if pair in self.risk_manager.open_positions:
-                if self.risk_manager.should_stop_loss(pair, current_price):
-                    self.log_activity('RISK_MGMT', f'[{pair}] Stop loss triggered - forcing SELL')
-                    # Force sell due to stop loss
-                    trade = self.trading_simulator.execute_decision(
-                        decision=TradeDecision.SELL,
-                        price=current_price,
-                        reasoning="Stop loss triggered",
-                        pair=pair
-                    )
-                    if trade:
-                        self.risk_manager.close_position(pair, current_price, "Stop Loss")
-                        self.log_activity('TRADE', f'[{pair}] Stop loss executed at ${current_price}')
-                    return {'success': True, 'reason': 'stop_loss_triggered', 'trade': trade.to_dict() if trade else None}
-
-                elif self.risk_manager.should_take_profit(pair, current_price):
-                    self.log_activity('RISK_MGMT', f'[{pair}] Take profit triggered - forcing SELL')
-                    # Force sell due to take profit
-                    trade = self.trading_simulator.execute_decision(
-                        decision=TradeDecision.SELL,
-                        price=current_price,
-                        reasoning="Take profit triggered",
-                        pair=pair
-                    )
-                    if trade:
-                        self.risk_manager.close_position(pair, current_price, "Take Profit")
-                        self.log_activity('TRADE', f'[{pair}] Take profit executed at ${current_price}')
-                    return {'success': True, 'reason': 'take_profit_triggered', 'trade': trade.to_dict() if trade else None}
-
             # Step 2: Get AI trading decision with performance stats
             self.log_activity('AI_DECISION', f'[{pair}] Requesting trading decision from Grok AI')
 
@@ -193,7 +163,17 @@ class TradingBot:
                 f'[{pair}] AI Decision: {decision} (confidence: {confidence:.2f}, risk: {risk_level}) - {reasoning[:100]}...',
                 {'pair': pair, 'decision': decision, 'reasoning': reasoning, 'confidence': confidence, 'risk_level': risk_level}
             )
-            
+
+            # Catastrophic stop-loss check (emergency brake)
+            if pair in self.risk_manager.open_positions and self.risk_manager.should_stop_loss(pair, current_price):
+                self.log_activity('RISK_MGMT', f'[{pair}] Catastrophic Stop Loss triggered - overriding AI to force SELL')
+                decision = TradeDecision.SELL
+                reasoning = "Catastrophic stop loss triggered"
+                # Use a full-size sell to close the position
+                ai_position_size = 1.0
+            else:
+                ai_position_size = ai_response.get('position_size_percentage', 0.0)
+
             # Step 3: Execute trade based on decision and risk management
             trade = None
             if decision != TradeDecision.HOLD:
@@ -214,7 +194,8 @@ class TradingBot:
                     decision=decision,
                     price=current_price,
                     reasoning=reasoning,
-                    pair=pair
+                    pair=pair,
+                    trade_percentage=ai_position_size  # Use AI-provided size
                 )
 
                 if trade:

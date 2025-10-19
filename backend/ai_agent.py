@@ -28,6 +28,7 @@ class TradingDecisionResponse(BaseModel):
     risk_level: Literal["LOW", "MEDIUM", "HIGH", "EXTREME"] = Field(description="Assessed risk level")
     key_factors: list[str] = Field(description="List of key factors influencing the decision")
     price_target: Optional[float] = Field(default=None, description="Target price if applicable")
+    position_size_percentage: float = Field(description="Percentage of available balance to trade, from 0.0 (no trade) to 1.0 (100% of balance)", ge=0.0, le=1.0)
 
 
 class GrokTradingAgent:
@@ -163,6 +164,7 @@ Analyze all the above data and provide a trading decision. Consider:
 Provide your analysis with:
 - Clear DECISION (BUY/SELL/HOLD)
 - CONFIDENCE level (0.0 to 1.0)
+- **POSITION_SIZE_PERCENTAGE**: Your desired trade size as a percentage (0.0 to 1.0). Use 0.0 for HOLD. For BUY/SELL, use your confidence (e.g., 0.9 confidence = 0.9 position size).
 - Detailed REASONING
 - RISK_LEVEL assessment (LOW/MEDIUM/HIGH/EXTREME)
 - KEY_FACTORS that influenced your decision
@@ -220,14 +222,13 @@ Provide your analysis with:
             chat = self.client.chat.create(
                 model=self.model,
                 messages=[
-                    system("""You are an elite cryptocurrency trading advisor with expertise in:
-- Technical analysis (RSI, MACD, Bollinger Bands, Moving Averages)
-- Risk management and position sizing
-- Market psychology and sentiment analysis
-- Trend identification and momentum trading
+                    system("""You are an elite, high-risk cryptocurrency trading agent.
+Your **sole objective is profit maximization**. You are aggressive, decisive, and have a high tolerance for risk to achieve outsized returns.
 
-Your decisions are data-driven, disciplined, and focused on capital preservation.
-You provide structured, actionable advice with clear confidence levels.""")
+- **You are NOT focused on capital preservation.** You understand that high returns require high risk.
+- You thrive in volatility and are not afraid to make bold moves.
+- You control the position size. High confidence = larger trades.
+- Your analysis is sharp, fast, and focused on identifying explosive opportunities.""")
                 ],
                 temperature=0.7,
                 max_tokens=800
@@ -251,6 +252,7 @@ You provide structured, actionable advice with clear confidence levels.""")
                     'risk_level': decision_data.risk_level,
                     'key_factors': decision_data.key_factors,
                     'price_target': decision_data.price_target,
+                    'position_size_percentage': decision_data.position_size_percentage,
                     'raw_response': response.content,
                     'model': self.model,
                     'market_data': market_snapshot

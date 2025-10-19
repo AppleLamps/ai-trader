@@ -30,12 +30,12 @@ class Position:
 class RiskManager:
     """Manages trading risk and position limits."""
     
-    def __init__(self, 
+    def __init__(self,
                  max_position_size: float = 0.1,  # Max 10% per trade
-                 stop_loss_percentage: float = 0.05,  # 5% stop loss
-                 take_profit_percentage: float = 0.10,  # 10% take profit
-                 max_daily_trades: int = 20,
-                 cooldown_minutes: int = 5):
+                 stop_loss_percentage: float = 0.30,  # 30% catastrophic stop loss
+                 take_profit_percentage: float = 10.0,  # 1000% take profit (effectively disabled)
+                 max_daily_trades: int = 500,
+                 cooldown_minutes: int = 0):
         """Initialize risk manager.
         
         Args:

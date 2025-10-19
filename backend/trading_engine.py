@@ -98,13 +98,14 @@ class TradingSimulator:
             last_updated=datetime.utcnow().isoformat()
         )
     
-    def execute_buy(self, price: float, reasoning: str, pair: str) -> Optional[Trade]:
+    def execute_buy(self, price: float, reasoning: str, pair: str, trade_percentage: float) -> Optional[Trade]:
         """Execute a BUY trade.
 
         Args:
             price: Current price of the cryptocurrency
             reasoning: AI's reasoning for the trade
             pair: Trading pair (e.g., "BTC/USD")
+            trade_percentage: Percentage of available balance to trade
 
         Returns:
             Trade object if successful, None otherwise
@@ -113,7 +114,7 @@ class TradingSimulator:
         crypto_symbol = pair.split('/')[0] if '/' in pair else pair
 
         # Calculate amount to buy (percentage of available USD)
-        usd_to_spend = self.usd_balance * self.trade_percentage
+        usd_to_spend = self.usd_balance * trade_percentage
 
         if usd_to_spend < 1.0:  # Minimum $1 trade
             logger.warning(f"Insufficient USD balance for BUY: ${self.usd_balance}")
@@ -145,13 +146,14 @@ class TradingSimulator:
 
         return trade
     
-    def execute_sell(self, price: float, reasoning: str, pair: str) -> Optional[Trade]:
+    def execute_sell(self, price: float, reasoning: str, pair: str, trade_percentage: float) -> Optional[Trade]:
         """Execute a SELL trade.
 
         Args:
             price: Current price of the cryptocurrency
             reasoning: AI's reasoning for the trade
             pair: Trading pair (e.g., "BTC/USD")
+            trade_percentage: Percentage of available balance to trade
 
         Returns:
             Trade object if successful, None otherwise
@@ -165,7 +167,7 @@ class TradingSimulator:
             return None
 
         # Calculate amount to sell (percentage of available crypto)
-        crypto_to_sell = self.crypto_balances[crypto_symbol] * self.trade_percentage
+        crypto_to_sell = self.crypto_balances[crypto_symbol] * trade_percentage
 
         if crypto_to_sell < 0.00000001:  # Minimum crypto amount
             logger.warning(f"Insufficient {crypto_symbol} balance for SELL: {self.crypto_balances[crypto_symbol]}")
@@ -195,22 +197,23 @@ class TradingSimulator:
 
         return trade
     
-    def execute_decision(self, decision: TradeDecision, price: float, reasoning: str, pair: str) -> Optional[Trade]:
+    def execute_decision(self, decision: TradeDecision, price: float, reasoning: str, pair: str, trade_percentage: float) -> Optional[Trade]:
         """Execute a trading decision.
-        
+
         Args:
             decision: Trading decision (BUY/SELL/HOLD)
             price: Current price of the cryptocurrency
             reasoning: AI's reasoning for the decision
             pair: Trading pair
-            
+            trade_percentage: Percentage of available balance to trade
+
         Returns:
             Trade object if trade was executed, None for HOLD or failed trades
         """
         if decision == TradeDecision.BUY:
-            return self.execute_buy(price, reasoning, pair)
+            return self.execute_buy(price, reasoning, pair, trade_percentage)
         elif decision == TradeDecision.SELL:
-            return self.execute_sell(price, reasoning, pair)
+            return self.execute_sell(price, reasoning, pair, trade_percentage)
         else:  # HOLD
             logger.info(f"HOLD decision: {reasoning}")
             return None
