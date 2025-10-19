@@ -104,9 +104,9 @@ async function updateStatus() {
         const status = result.data;
         updateBotStatus(status.is_running);
 
-        // Update AI decision
-        if (status.last_decision && status.last_decision.decision) {
-            updateAIDecision(status.last_decision);
+        // Update AI decisions for all pairs
+        if (status.last_decisions && Object.keys(status.last_decisions).length > 0) {
+            updateAIDecisions(status.last_decisions);
         }
     }
 }
@@ -114,22 +114,55 @@ async function updateStatus() {
 async function updateMarketData() {
     const result = await apiCall('/market-data');
     if (result && result.success && result.data) {
-        const data = result.data;
+        const marketDataByPair = result.data;
+        const container = document.getElementById('marketDataContainer');
 
-        document.getElementById('pair').textContent = data.pair || '-';
-        document.getElementById('price').textContent = data.price ? `$${formatNumber(data.price)}` : '$-';
-        document.getElementById('change24h').textContent = data.change_24h ? `${data.change_24h}%` : '-';
-        document.getElementById('high24h').textContent = data.high_24h ? `$${formatNumber(data.high_24h)}` : '$-';
-        document.getElementById('low24h').textContent = data.low_24h ? `$${formatNumber(data.low_24h)}` : '$-';
-        document.getElementById('volume').textContent = data.volume ? formatNumber(data.volume) : '-';
+        if (!container) return;
 
-        // Technical indicators
-        const technical = data.technical_indicators || {};
-        const rsi = technical.RSI || {};
-        const macd = technical.MACD || {};
+        // Clear existing content
+        container.innerHTML = '';
 
-        document.getElementById('rsi').textContent = rsi.value ? formatNumber(rsi.value, 2) : '-';
-        document.getElementById('macd').textContent = macd.value ? formatNumber(macd.value, 4) : '-';
+        // Create a card for each trading pair
+        for (const [pair, data] of Object.entries(marketDataByPair)) {
+            if (!data) continue;
+
+            const card = document.createElement('div');
+            card.className = 'rounded-lg border bg-white shadow-sm p-4';
+
+            const technical = data.technical_indicators || {};
+            const rsi = technical.RSI || {};
+            const macd = technical.MACD || {};
+
+            card.innerHTML = `
+                <h3 class="text-lg font-bold mb-3">${pair}</h3>
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-xs font-medium text-muted-foreground">Price</p>
+                        <p class="text-2xl font-bold text-success">${data.price ? '$' + formatNumber(data.price) : '$-'}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                            <p class="text-muted-foreground">24h Change</p>
+                            <p class="font-semibold">${data.change_24h ? data.change_24h + '%' : '-'}</p>
+                        </div>
+                        <div>
+                            <p class="text-muted-foreground">Volume</p>
+                            <p class="font-semibold">${data.volume ? formatNumber(data.volume) : '-'}</p>
+                        </div>
+                        <div>
+                            <p class="text-muted-foreground">RSI</p>
+                            <p class="font-semibold">${rsi.value ? formatNumber(rsi.value, 2) : '-'}</p>
+                        </div>
+                        <div>
+                            <p class="text-muted-foreground">MACD</p>
+                            <p class="font-semibold">${macd.value ? formatNumber(macd.value, 4) : '-'}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(card);
+        }
     }
 }
 
@@ -139,9 +172,33 @@ async function updatePortfolio() {
         const portfolio = result.data;
 
         document.getElementById('usdBalance').textContent = `$${formatNumber(portfolio.usd_balance)}`;
-        document.getElementById('cryptoBalance').textContent =
-            `${formatNumber(portfolio.crypto_balance, 8)} ${portfolio.crypto_symbol}`;
         document.getElementById('totalValue').textContent = `$${formatNumber(portfolio.total_value_usd)}`;
+
+        // Update crypto balances
+        const container = document.getElementById('cryptoBalancesContainer');
+        if (container && portfolio.crypto_balances) {
+            container.innerHTML = '';
+
+            for (const [symbol, balance] of Object.entries(portfolio.crypto_balances)) {
+                const valueUsd = portfolio.crypto_values_usd[symbol] || 0;
+
+                const balanceDiv = document.createElement('div');
+                balanceDiv.className = 'rounded-md border p-3';
+                balanceDiv.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-xs font-medium text-muted-foreground">${symbol} Balance</p>
+                            <p class="text-sm font-bold mt-1">${formatNumber(balance, 8)} ${symbol}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs font-medium text-muted-foreground">Value</p>
+                            <p class="text-sm font-bold mt-1">$${formatNumber(valueUsd)}</p>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(balanceDiv);
+            }
+        }
     }
 }
 
@@ -152,7 +209,7 @@ async function updateTradeHistory() {
         const tbody = document.getElementById('tradeTableBody');
 
         if (trades.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-sm text-muted-foreground">No trades yet</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-sm text-muted-foreground">No trades yet</td></tr>';
             return;
         }
 
@@ -164,6 +221,7 @@ async function updateTradeHistory() {
             return `
                 <tr class="hover:bg-muted/50 transition-colors">
                     <td class="px-4 py-3 text-sm">${formatTime(trade.timestamp)}</td>
+                    <td class="px-4 py-3 text-sm font-medium">${trade.pair || '-'}</td>
                     <td class="px-4 py-3"><span class="${typeClass}">${trade.trade_type}</span></td>
                     <td class="px-4 py-3 text-sm font-medium">$${formatNumber(trade.price)}</td>
                     <td class="px-4 py-3 text-sm">${formatNumber(trade.amount, 8)}</td>
@@ -229,24 +287,43 @@ function updateBotStatus(isRunning) {
     }
 }
 
-function updateAIDecision(decision) {
-    const decisionEl = document.getElementById('decision');
-    const reasoningEl = document.getElementById('reasoning');
+function updateAIDecisions(decisions) {
+    const container = document.getElementById('decisionsContainer');
+    if (!container) return;
 
-    if (decision.decision) {
-        decisionEl.textContent = decision.decision;
-        // Apply Tailwind classes based on decision type
+    container.innerHTML = '';
+
+    for (const [pair, decision] of Object.entries(decisions)) {
+        if (!decision || !decision.decision) continue;
+
+        const decisionCard = document.createElement('div');
+        decisionCard.className = 'border rounded-lg p-4';
+
+        let decisionClass = 'inline-flex items-center rounded-md px-3 py-1 text-sm font-semibold';
         if (decision.decision === 'BUY') {
-            decisionEl.className = 'inline-flex items-center rounded-md px-3 py-1 text-sm font-semibold bg-success/10 text-success border border-success/20';
+            decisionClass += ' bg-success/10 text-success border border-success/20';
         } else if (decision.decision === 'SELL') {
-            decisionEl.className = 'inline-flex items-center rounded-md px-3 py-1 text-sm font-semibold bg-destructive/10 text-destructive border border-destructive/20';
+            decisionClass += ' bg-destructive/10 text-destructive border border-destructive/20';
         } else {
-            decisionEl.className = 'inline-flex items-center rounded-md px-3 py-1 text-sm font-semibold bg-amber-500/10 text-amber-700 border border-amber-500/20';
+            decisionClass += ' bg-amber-500/10 text-amber-700 border border-amber-500/20';
         }
-    }
 
-    if (decision.reasoning) {
-        reasoningEl.textContent = decision.reasoning;
+        decisionCard.innerHTML = `
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-semibold">${pair}</h3>
+                <span class="${decisionClass}">${decision.decision}</span>
+            </div>
+            <div class="rounded-md bg-muted p-3 border-l-4 border-primary">
+                <p class="text-sm leading-relaxed">${decision.reasoning || 'No reasoning provided'}</p>
+            </div>
+            ${decision.confidence ? `
+                <div class="mt-2 text-xs text-muted-foreground">
+                    Confidence: ${(decision.confidence * 100).toFixed(0)}% | Risk: ${decision.risk_level || 'N/A'}
+                </div>
+            ` : ''}
+        `;
+
+        container.appendChild(decisionCard);
     }
 }
 

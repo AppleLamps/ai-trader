@@ -28,7 +28,9 @@ venv/
 ENV/
 env/
 .venv
+xai-sdk-python/
 
+api-docs/
 # IDE
 .vscode/
 .idea/

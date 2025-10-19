@@ -14,10 +14,15 @@ class Settings(BaseSettings):
     freecrypto_base_url: str = "https://api.freecryptoapi.com/v1"
 
     # Trading Configuration
-    crypto_pair: str = "BTC/USD"
+    crypto_pairs: str = "BTC/USD,DOGE/USD,SOL/USD"  # Comma-separated list of trading pairs
     fetch_interval: int = 60  # seconds
-    initial_usd_balance: float = 10000.0
+    initial_usd_balance: float = 10000000.0  # $10 million starting balance
     trade_percentage: float = 0.1  # 10% of available balance per trade
+
+    @property
+    def trading_pairs(self) -> list[str]:
+        """Get list of trading pairs from comma-separated string."""
+        return [pair.strip() for pair in self.crypto_pairs.split(',') if pair.strip()]
 
     # API Configuration
     backend_host: str = "0.0.0.0"

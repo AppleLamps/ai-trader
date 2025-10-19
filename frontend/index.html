@@ -87,57 +87,16 @@
                 </div>
             </div>
 
-            <!-- Market Data & Portfolio Grid -->
-            <div class="grid gap-6 md:grid-cols-2 mb-6">
-                <!-- Market Data Card -->
-                <div class="rounded-lg border bg-white shadow-sm">
-                    <div class="p-6">
-                        <h2 class="text-lg font-semibold tracking-tight mb-4">Market Data</h2>
-                        <div class="space-y-4">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p class="text-sm font-medium text-muted-foreground">Pair</p>
-                                    <p id="pair" class="text-2xl font-bold mt-1">-</p>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-muted-foreground">Price</p>
-                                    <p id="price" class="text-2xl font-bold text-success mt-1">$-</p>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-3 gap-4 pt-4 border-t">
-                                <div>
-                                    <p class="text-xs font-medium text-muted-foreground">24h Change</p>
-                                    <p id="change24h" class="text-sm font-semibold mt-1">-</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-medium text-muted-foreground">24h High</p>
-                                    <p id="high24h" class="text-sm font-semibold mt-1">$-</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-medium text-muted-foreground">24h Low</p>
-                                    <p id="low24h" class="text-sm font-semibold mt-1">$-</p>
-                                </div>
-                            </div>
-                            <div class="pt-4 border-t">
-                                <p class="text-xs font-medium text-muted-foreground">Volume</p>
-                                <p id="volume" class="text-sm font-semibold mt-1">-</p>
-                            </div>
-                        </div>
-                        <div class="mt-6 pt-6 border-t">
-                            <h3 class="text-sm font-semibold mb-3">Technical Indicators</h3>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="rounded-md bg-secondary p-3">
-                                    <p class="text-xs font-medium text-muted-foreground">RSI</p>
-                                    <p id="rsi" class="text-lg font-bold mt-1">-</p>
-                                </div>
-                                <div class="rounded-md bg-secondary p-3">
-                                    <p class="text-xs font-medium text-muted-foreground">MACD</p>
-                                    <p id="macd" class="text-lg font-bold mt-1">-</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <!-- Market Data Cards - One per crypto -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold tracking-tight mb-4">Market Data</h2>
+                <div id="marketDataContainer" class="grid gap-4 md:grid-cols-3">
+                    <!-- Market data cards will be dynamically inserted here -->
                 </div>
+            </div>
+
+            <!-- Portfolio Grid -->
+            <div class="grid gap-6 md:grid-cols-2 mb-6">
 
                 <!-- Portfolio Card -->
                 <div class="rounded-lg border bg-white shadow-sm">
@@ -149,15 +108,12 @@
                                 <p class="text-sm font-medium opacity-90">Total Value</p>
                                 <p id="totalValue" class="text-3xl font-bold mt-2">$-</p>
                             </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="rounded-md border p-4">
-                                    <p class="text-xs font-medium text-muted-foreground">USD Balance</p>
-                                    <p id="usdBalance" class="text-lg font-bold mt-1">$-</p>
-                                </div>
-                                <div class="rounded-md border p-4">
-                                    <p class="text-xs font-medium text-muted-foreground">Crypto Balance</p>
-                                    <p id="cryptoBalance" class="text-lg font-bold mt-1">-</p>
-                                </div>
+                            <div class="rounded-md border p-4">
+                                <p class="text-xs font-medium text-muted-foreground mb-3">USD Balance</p>
+                                <p id="usdBalance" class="text-lg font-bold">$-</p>
+                            </div>
+                            <div id="cryptoBalancesContainer" class="space-y-2">
+                                <!-- Crypto balances will be dynamically inserted here -->
                             </div>
                         </div>
                         <div class="mt-6 pt-6 border-t">
@@ -181,23 +137,13 @@
                 </div>
             </div>
 
-            <!-- AI Decision -->
+            <!-- AI Decisions -->
             <div class="mb-6 rounded-lg border bg-white shadow-sm">
                 <div class="p-6">
-                    <h2 class="text-lg font-semibold tracking-tight mb-4">Latest AI Decision</h2>
-                    <div class="space-y-4">
-                        <div class="flex items-center gap-3">
-                            <span class="text-sm font-medium text-muted-foreground">Decision:</span>
-                            <span id="decision"
-                                class="inline-flex items-center rounded-md px-3 py-1 text-sm font-semibold">-</span>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-muted-foreground mb-2">Reasoning:</p>
-                            <div class="rounded-md bg-muted p-4 border-l-4 border-primary">
-                                <p id="reasoning" class="text-sm leading-relaxed">No decision yet. Start the bot or run
-                                    a single cycle.</p>
-                            </div>
-                        </div>
+                    <h2 class="text-lg font-semibold tracking-tight mb-4">Latest AI Decisions</h2>
+                    <div id="decisionsContainer" class="space-y-4">
+                        <p class="text-sm text-muted-foreground">No decisions yet. Start the bot or run a single cycle.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -213,6 +159,9 @@
                                     <th
                                         class="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         Time</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                        Pair</th>
                                     <th
                                         class="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         Type</th>
@@ -232,7 +181,7 @@
                             </thead>
                             <tbody id="tradeTableBody" class="divide-y">
                                 <tr>
-                                    <td colspan="6" class="px-4 py-8 text-center text-sm text-muted-foreground">No
+                                    <td colspan="7" class="px-4 py-8 text-center text-sm text-muted-foreground">No
                                         trades yet</td>
                                 </tr>
                             </tbody>

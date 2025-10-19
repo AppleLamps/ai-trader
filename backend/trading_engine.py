@@ -37,11 +37,11 @@ class Trade:
 class Portfolio:
     """Represents the current portfolio state."""
     usd_balance: float
-    crypto_balance: float
-    crypto_symbol: str
+    crypto_balances: Dict[str, float]  # {symbol: balance}
+    crypto_values_usd: Dict[str, float]  # {symbol: usd_value}
     total_value_usd: float
     last_updated: str
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert portfolio to dictionary."""
         return asdict(self)
@@ -49,67 +49,85 @@ class Portfolio:
 
 class TradingSimulator:
     """Simulates cryptocurrency trading with a virtual portfolio."""
-    
-    def __init__(self, initial_usd: float = None, crypto_symbol: str = "BTC"):
+
+    def __init__(self, initial_usd: float = None, crypto_symbols: List[str] = None):
         """Initialize the trading simulator.
-        
+
         Args:
             initial_usd: Initial USD balance (defaults to settings value)
-            crypto_symbol: Symbol of the cryptocurrency being traded
+            crypto_symbols: List of cryptocurrency symbols being traded (e.g., ["BTC", "DOGE", "SOL"])
         """
         self.usd_balance = initial_usd or settings.initial_usd_balance
-        self.crypto_balance = 0.0
-        self.crypto_symbol = crypto_symbol
+        self.crypto_balances: Dict[str, float] = {}  # {symbol: balance}
+
+        # Initialize balances for each crypto
+        if crypto_symbols:
+            for symbol in crypto_symbols:
+                self.crypto_balances[symbol] = 0.0
+
         self.trade_history: List[Trade] = []
         self.trade_percentage = settings.trade_percentage
-        
-        logger.info(f"Initialized trading simulator with ${self.usd_balance} USD")
+
+        logger.info(f"Initialized trading simulator with ${self.usd_balance} USD for {len(self.crypto_balances)} cryptocurrencies")
     
-    def get_portfolio(self, current_price: float) -> Portfolio:
+    def get_portfolio(self, current_prices: Dict[str, float]) -> Portfolio:
         """Get current portfolio status.
-        
+
         Args:
-            current_price: Current price of the cryptocurrency
-            
+            current_prices: Dictionary of current prices {symbol: price}
+
         Returns:
             Portfolio object with current state
         """
-        crypto_value_usd = self.crypto_balance * current_price
-        total_value = self.usd_balance + crypto_value_usd
-        
+        crypto_values_usd = {}
+        total_crypto_value = 0.0
+
+        for symbol, balance in self.crypto_balances.items():
+            price = current_prices.get(symbol, 0.0)
+            value = balance * price
+            crypto_values_usd[symbol] = round(value, 2)
+            total_crypto_value += value
+
+        total_value = self.usd_balance + total_crypto_value
+
         return Portfolio(
             usd_balance=round(self.usd_balance, 2),
-            crypto_balance=round(self.crypto_balance, 8),
-            crypto_symbol=self.crypto_symbol,
+            crypto_balances={k: round(v, 8) for k, v in self.crypto_balances.items()},
+            crypto_values_usd=crypto_values_usd,
             total_value_usd=round(total_value, 2),
             last_updated=datetime.utcnow().isoformat()
         )
     
     def execute_buy(self, price: float, reasoning: str, pair: str) -> Optional[Trade]:
         """Execute a BUY trade.
-        
+
         Args:
             price: Current price of the cryptocurrency
             reasoning: AI's reasoning for the trade
-            pair: Trading pair
-            
+            pair: Trading pair (e.g., "BTC/USD")
+
         Returns:
             Trade object if successful, None otherwise
         """
+        # Extract crypto symbol from pair
+        crypto_symbol = pair.split('/')[0] if '/' in pair else pair
+
         # Calculate amount to buy (percentage of available USD)
         usd_to_spend = self.usd_balance * self.trade_percentage
-        
+
         if usd_to_spend < 1.0:  # Minimum $1 trade
             logger.warning(f"Insufficient USD balance for BUY: ${self.usd_balance}")
             return None
-        
+
         # Calculate crypto amount
         crypto_amount = usd_to_spend / price
-        
+
         # Update balances
         self.usd_balance -= usd_to_spend
-        self.crypto_balance += crypto_amount
-        
+        if crypto_symbol not in self.crypto_balances:
+            self.crypto_balances[crypto_symbol] = 0.0
+        self.crypto_balances[crypto_symbol] += crypto_amount
+
         # Create trade record
         trade = Trade(
             timestamp=datetime.utcnow().isoformat(),
@@ -120,38 +138,46 @@ class TradingSimulator:
             usd_value=round(usd_to_spend, 2),
             reasoning=reasoning
         )
-        
+
         self.trade_history.append(trade)
-        
-        logger.info(f"BUY executed: {crypto_amount:.8f} {self.crypto_symbol} at ${price:.2f} (${usd_to_spend:.2f})")
-        
+
+        logger.info(f"BUY executed: {crypto_amount:.8f} {crypto_symbol} at ${price:.2f} (${usd_to_spend:.2f})")
+
         return trade
     
     def execute_sell(self, price: float, reasoning: str, pair: str) -> Optional[Trade]:
         """Execute a SELL trade.
-        
+
         Args:
             price: Current price of the cryptocurrency
             reasoning: AI's reasoning for the trade
-            pair: Trading pair
-            
+            pair: Trading pair (e.g., "BTC/USD")
+
         Returns:
             Trade object if successful, None otherwise
         """
-        # Calculate amount to sell (percentage of available crypto)
-        crypto_to_sell = self.crypto_balance * self.trade_percentage
-        
-        if crypto_to_sell < 0.00000001:  # Minimum crypto amount
-            logger.warning(f"Insufficient crypto balance for SELL: {self.crypto_balance}")
+        # Extract crypto symbol from pair
+        crypto_symbol = pair.split('/')[0] if '/' in pair else pair
+
+        # Check if we have this crypto
+        if crypto_symbol not in self.crypto_balances:
+            logger.warning(f"No {crypto_symbol} balance to sell")
             return None
-        
+
+        # Calculate amount to sell (percentage of available crypto)
+        crypto_to_sell = self.crypto_balances[crypto_symbol] * self.trade_percentage
+
+        if crypto_to_sell < 0.00000001:  # Minimum crypto amount
+            logger.warning(f"Insufficient {crypto_symbol} balance for SELL: {self.crypto_balances[crypto_symbol]}")
+            return None
+
         # Calculate USD value
         usd_received = crypto_to_sell * price
-        
+
         # Update balances
-        self.crypto_balance -= crypto_to_sell
+        self.crypto_balances[crypto_symbol] -= crypto_to_sell
         self.usd_balance += usd_received
-        
+
         # Create trade record
         trade = Trade(
             timestamp=datetime.utcnow().isoformat(),
@@ -162,11 +188,11 @@ class TradingSimulator:
             usd_value=round(usd_received, 2),
             reasoning=reasoning
         )
-        
+
         self.trade_history.append(trade)
-        
-        logger.info(f"SELL executed: {crypto_to_sell:.8f} {self.crypto_symbol} at ${price:.2f} (${usd_received:.2f})")
-        
+
+        logger.info(f"SELL executed: {crypto_to_sell:.8f} {crypto_symbol} at ${price:.2f} (${usd_received:.2f})")
+
         return trade
     
     def execute_decision(self, decision: TradeDecision, price: float, reasoning: str, pair: str) -> Optional[Trade]:

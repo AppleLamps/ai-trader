@@ -103,9 +103,15 @@ async def get_status():
 async def get_portfolio():
     """Get current portfolio status."""
     try:
-        current_price = bot.last_market_data.get('price', 0) if bot.last_market_data else 0
-        portfolio = bot.trading_simulator.get_portfolio(current_price)
-        
+        # Get current prices for all pairs
+        current_prices = {}
+        for pair in bot.trading_pairs:
+            if pair in bot.last_market_data and bot.last_market_data[pair]:
+                crypto_symbol = pair.split('/')[0]
+                current_prices[crypto_symbol] = bot.last_market_data[pair].get('price', 0)
+
+        portfolio = bot.trading_simulator.get_portfolio(current_prices)
+
         return {
             "success": True,
             "data": portfolio.to_dict()
@@ -117,14 +123,15 @@ async def get_portfolio():
 
 @app.get("/api/market-data")
 async def get_market_data():
-    """Get current market data."""
+    """Get current market data for all trading pairs."""
     try:
-        if not bot.last_market_data:
-            # Fetch fresh data if none exists
-            market_snapshot = bot.market_aggregator.get_complete_market_snapshot(bot.current_pair)
-            if market_snapshot:
-                bot.last_market_data = market_snapshot
-        
+        # Fetch fresh data for any pairs that don't have data
+        for pair in bot.trading_pairs:
+            if pair not in bot.last_market_data or not bot.last_market_data[pair]:
+                market_snapshot = bot.market_aggregator.get_complete_market_snapshot(pair)
+                if market_snapshot:
+                    bot.last_market_data[pair] = market_snapshot
+
         return {
             "success": True,
             "data": bot.last_market_data
@@ -256,31 +263,20 @@ async def get_crypto_list():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/bot/change-pair")
-async def change_trading_pair(request: PairChangeRequest):
-    """Change the trading pair.
-    
-    Args:
-        request: Request with new trading pair
+@app.get("/api/trading-pairs")
+async def get_trading_pairs():
+    """Get list of currently tracked trading pairs.
+
+    Returns:
+        List of trading pairs being tracked
     """
     try:
-        if bot.is_running:
-            return {
-                "success": False,
-                "message": "Cannot change pair while bot is running. Stop the bot first."
-            }
-        
-        bot.current_pair = request.pair
-        # Update crypto symbol in simulator
-        crypto_symbol = request.pair.split('/')[0]
-        bot.trading_simulator.crypto_symbol = crypto_symbol
-        
         return {
             "success": True,
-            "message": f"Trading pair changed to {request.pair}"
+            "data": bot.trading_pairs
         }
     except Exception as e:
-        logger.error(f"Error changing trading pair: {e}")
+        logger.error(f"Error getting trading pairs: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

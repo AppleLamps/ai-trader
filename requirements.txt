@@ -5,4 +5,7 @@ python-dotenv==1.0.0
 pydantic==2.5.3
 pydantic-settings==2.1.0
 xai-sdk==0.0.1a3
+pandas>=2.0.0
+numpy>=1.24.0
+pandas-ta>=0.4.67b0
 
